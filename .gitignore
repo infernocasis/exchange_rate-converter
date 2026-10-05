@@ -1,0 +1,40 @@
+# Nuxt / Nitro build outputs and caches
+.output
+.data
+.nuxt
+.nitro
+.cache
+dist
+
+# Deploy platforms
+.vercel
+.netlify
+
+# Dependencies
+node_modules
+
+# Logs
+logs
+*.log
+
+# Tooling caches
+*.tsbuildinfo
+.eslintcache
+coverage
+
+# Env files: секреты не коммитим, шаблон — коммитим
+.env
+.env.*
+!.env.example
+
+# Editors / IDE
+.idea
+.fleet
+.vscode/*
+!.vscode/extensions.json
+*.swp
+
+# OS
+.DS_Store
+Thumbs.db
+desktop.ini
