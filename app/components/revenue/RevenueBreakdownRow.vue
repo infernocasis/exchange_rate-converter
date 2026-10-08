@@ -26,7 +26,7 @@ const barWidth = computed(() => `${(props.item.share * 100).toFixed(2)}%`)
           ≈ {{ formatMoney(item.converted, targetCurrency) }}
         </p>
         <p class="text-xs text-slate-500">
-          {{ formatPercent(item.share) }} от итога
+          {{ formatPaymentsCount(item.paymentsCount) }} · {{ formatPercent(item.share) }} от итога
         </p>
       </div>
     </div>

@@ -22,6 +22,18 @@ const percentFormatter = new Intl.NumberFormat(LOCALE, {
 })
 export const formatPercent = (value: number): string => percentFormatter.format(value)
 
+const pluralRules = new Intl.PluralRules(LOCALE)
+const PAYMENT_FORMS: Partial<Record<Intl.LDMLPluralRule, string>> = {
+  one: 'оплата',
+  few: 'оплаты',
+  many: 'оплат',
+}
+
+/** 1 оплата, 3 оплаты, 5 оплат */
+export function formatPaymentsCount(count: number): string {
+  return `${count} ${PAYMENT_FORMS[pluralRules.select(count)] ?? 'оплат'}`
+}
+
 const dateFormatter = new Intl.DateTimeFormat(LOCALE, {
   dateStyle: 'long',
   timeStyle: 'short',

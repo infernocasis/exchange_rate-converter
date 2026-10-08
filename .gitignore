@@ -38,3 +38,6 @@ coverage
 .DS_Store
 Thumbs.db
 desktop.ini
+
+# Артефакты Playwright MCP
+.playwright-mcp

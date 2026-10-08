@@ -4,10 +4,13 @@ import type { DailyRevenue } from '#shared/types/revenue'
 const props = defineProps<{ revenue: DailyRevenue }>()
 
 const caption = computed(() => {
-  const { breakdown, currency } = props.revenue
+  const { breakdown, currency, paymentsCount } = props.revenue
+  if (paymentsCount === 0) return 'Оплат за день нет'
+
+  const payments = formatPaymentsCount(paymentsCount)
   return breakdown.length > 1
-    ? `Пересчитано в ${currency} из ${breakdown.length} валют`
-    : `Все платежи в ${breakdown[0]?.currency ?? currency}`
+    ? `${payments}, пересчитано в ${currency} из ${breakdown.length} валют`
+    : `${payments}, все в ${breakdown[0]?.currency ?? currency}`
 })
 </script>
 

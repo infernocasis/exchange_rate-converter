@@ -14,6 +14,12 @@ import {
 export interface CurrencyTotal {
   currency: string
   total: number
+  paymentsCount: number
+}
+
+interface CurrencyAccumulator {
+  cents: number
+  paymentsCount: number
 }
 
 interface Transaction {
@@ -38,27 +44,30 @@ function assertSourcesShape(
   }
 }
 
-/** Прибавляет сумму к накопителю своей валюты */
-function addPayment(centsByCurrency: Map<string, number>, { amount, currency }: Money) {
-  centsByCurrency.set(currency, (centsByCurrency.get(currency) ?? 0) + toCents(amount))
+/** Прибавляет сумму и одну оплату к накопителю своей валюты */
+function addPayment(byCurrency: Map<string, CurrencyAccumulator>, { amount, currency }: Money) {
+  const acc = byCurrency.get(currency) ?? { cents: 0, paymentsCount: 0 }
+  acc.cents += toCents(amount)
+  acc.paymentsCount += 1
+  byCurrency.set(currency, acc)
 }
 
 /**
  * Чистая функция: считает выручку отдельно по каждой валюте.
  * Один проход по каждому источнику, без промежуточных массивов.
- * Возвращает [{ total, currency }, ...]; пустой массив, если оплат нет.
+ * Возвращает [{ total, currency, paymentsCount }, ...]; пустой массив, если оплат нет.
  */
 export function calculateDailyRevenue(orderData: unknown, cashPayments: unknown): CurrencyTotal[] {
   assertSourcesShape(orderData, cashPayments)
 
-  const centsByCurrency = new Map<string, number>()
+  const byCurrency = new Map<string, CurrencyAccumulator>()
 
   // Источник 1: берём только paid, остальные пропускаем без валидации
   orderData.transactions.forEach((transaction, index) => {
     if (transaction?.type !== 'paid') return
 
     const context = `transactions[${index}]`
-    addPayment(centsByCurrency, {
+    addPayment(byCurrency, {
       amount: validateAmount(transaction.amount, context),
       currency: normalizeCurrency(transaction.currency, context),
     })
@@ -66,12 +75,13 @@ export function calculateDailyRevenue(orderData: unknown, cashPayments: unknown)
 
   // Источник 2: каждая строка "300 USD" — оплата
   ;(cashPayments as unknown[]).forEach((value, index) => {
-    addPayment(centsByCurrency, parseMoneyString(value, `cashPayments[${index}]`))
+    addPayment(byCurrency, parseMoneyString(value, `cashPayments[${index}]`))
   })
 
-  return Array.from(centsByCurrency, ([currency, cents]) => ({
+  return Array.from(byCurrency, ([currency, { cents, paymentsCount }]) => ({
     total: fromCents(cents),
     currency,
+    paymentsCount,
   }))
 }
 
@@ -85,27 +95,30 @@ export function convertRevenue(
   exchangeRates: ExchangeRates,
   targetCurrency: string,
 ): Omit<DailyRevenue, 'ratesDate'> {
-  const items = totalsByCurrency.map(({ total, currency }) => {
+  const items = totalsByCurrency.map(({ total, currency, paymentsCount }) => {
     const rate = getRate(currency, targetCurrency, exchangeRates)
     return {
       currency,
       total,
       rate,
+      paymentsCount,
       convertedCents: Math.round(toCents(total) * rate),
     }
   })
 
   const totalCents = items.reduce((sum, item) => sum + item.convertedCents, 0)
+  const paymentsCount = items.reduce((sum, item) => sum + item.paymentsCount, 0)
 
   const breakdown = items
-    .map(({ currency, total, rate, convertedCents }) => ({
+    .map(({ currency, total, rate, paymentsCount, convertedCents }) => ({
       currency,
       total,
       rate,
       converted: fromCents(convertedCents),
       share: totalCents > 0 ? convertedCents / totalCents : 0,
+      paymentsCount,
     }))
     .sort((a, b) => b.converted - a.converted)
 
-  return { total: fromCents(totalCents), currency: targetCurrency, breakdown }
+  return { total: fromCents(totalCents), currency: targetCurrency, paymentsCount, breakdown }
 }

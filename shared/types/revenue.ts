@@ -10,11 +10,15 @@ export interface RevenueBreakdownItem {
   converted: number
   /** Доля в итоге, 0..1 */
   share: number
+  /** Количество оплат в этой валюте */
+  paymentsCount: number
 }
 
 export interface DailyRevenue {
   total: number
   currency: string
+  /** Количество оплат по всем валютам */
+  paymentsCount: number
   breakdown: RevenueBreakdownItem[]
   ratesDate: string | null
 }
