@@ -19,8 +19,8 @@ export interface ExchangeRates {
   rates: Record<string, number>
 }
 
-const CURRENCY_RE = /^[A-Z]{3}$/ // ISO 4217: ровно 3 латинские буквы
-const AMOUNT_RE = /^\d+(\.\d{1,2})?$/ // целое или до 2 знаков после точки
+export const CURRENCY_RE = /^[A-Z]{3}$/ // ISO 4217: ровно 3 латинские буквы
+export const AMOUNT_RE = /^\d+(\.\d{1,2})?$/ // целое или до 2 знаков после точки
 
 /** "usd" / " Usd " -> "USD"; всё, что не 3 латинские буквы, -> ошибка */
 export function normalizeCurrency(currency: unknown, context: string): string {

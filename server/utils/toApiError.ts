@@ -12,6 +12,14 @@ function upstreamErrorCode({ status, isTimeout }: UpstreamError): RevenueErrorCo
   return 'UPSTREAM_REJECTED'
 }
 
+/** Машиночитаемый код ошибки — для источника, который упал отдельно от остальных */
+export function toErrorCode(error: unknown): RevenueErrorCode {
+  if (error instanceof UpstreamError) return upstreamErrorCode(error)
+  if (error instanceof ConfigError) return 'CONFIG_MISSING'
+  if (error instanceof InvalidDataError) return 'INVALID_UPSTREAM_DATA'
+  return 'INTERNAL'
+}
+
 /** Переводит внутреннюю ошибку в HTTP-ответ с машиночитаемым кодом для клиента */
 export function toApiError(error: unknown) {
   if (error instanceof UpstreamError) {

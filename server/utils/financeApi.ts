@@ -7,17 +7,23 @@ export interface FinanceApiConfig {
 }
 
 export function createFinanceApi({ baseUrl, apiKey, timeoutMs }: FinanceApiConfig) {
-  const get = (path: string) =>
-    fetchUpstream(`${baseUrl}${path}`, {
+  const endpoints = {
+    transactions: `${baseUrl}/finance1`,
+    cashPayments: `${baseUrl}/finance2`,
+  }
+  const get = (url: string) =>
+    fetchUpstream(url, {
       headers: { 'x-api-key': apiKey },
       timeoutMs,
     })
 
   return {
+    /** Адреса без ключа (он в заголовке) — для страницы источников */
+    endpoints,
     /** Источник 1: { transactions: [...], address: {...} } */
-    getTransactions: () => get('/finance1'),
+    getTransactions: () => get(endpoints.transactions),
     /** Источник 2: ["300 USD", ...] */
-    getCashPayments: () => get('/finance2'),
+    getCashPayments: () => get(endpoints.cashPayments),
   }
 }
 

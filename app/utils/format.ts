@@ -23,16 +23,28 @@ const percentFormatter = new Intl.NumberFormat(LOCALE, {
 export const formatPercent = (value: number): string => percentFormatter.format(value)
 
 const pluralRules = new Intl.PluralRules(LOCALE)
-const PAYMENT_FORMS: Partial<Record<Intl.LDMLPluralRule, string>> = {
-  one: 'оплата',
-  few: 'оплаты',
-  many: 'оплат',
+
+export interface PluralForms {
+  one: string
+  few: string
+  many: string
+}
+
+/** pluralize(3, { one: 'оплата', few: 'оплаты', many: 'оплат' }) -> "3 оплаты" */
+export function pluralize(count: number, { one, few, many }: PluralForms): string {
+  const rule = pluralRules.select(count)
+  return `${count} ${rule === 'one' ? one : rule === 'few' ? few : many}`
 }
 
 /** 1 оплата, 3 оплаты, 5 оплат */
-export function formatPaymentsCount(count: number): string {
-  return `${count} ${PAYMENT_FORMS[pluralRules.select(count)] ?? 'оплат'}`
-}
+export const formatPaymentsCount = (count: number): string =>
+  pluralize(count, { one: 'оплата', few: 'оплаты', many: 'оплат' })
+
+const secondsFormatter = new Intl.NumberFormat(LOCALE, { maximumFractionDigits: 1 })
+export const formatDuration = (ms: number): string => `${secondsFormatter.format(ms / 1000)} с`
+
+const timeFormatter = new Intl.DateTimeFormat(LOCALE, { timeStyle: 'short' })
+export const formatTime = (iso: string): string => timeFormatter.format(new Date(iso))
 
 const dateFormatter = new Intl.DateTimeFormat(LOCALE, {
   dateStyle: 'long',

@@ -51,6 +51,9 @@ const DESCRIPTIONS: Record<RevenueErrorCode, Omit<ErrorDescription, 'details'>> 
   },
 }
 
+/** Заголовок и подсказка по коду — для источника, который упал отдельно */
+export const describeErrorCode = (code: RevenueErrorCode): Omit<ErrorDescription, 'details'> => DESCRIPTIONS[code]
+
 /** Переводит ошибку useFetch в понятный пользователю заголовок и подсказку */
 export function describeRevenueError(error: { message: string, data?: unknown }): ErrorDescription {
   const body = (error.data ?? {}) as ApiErrorBody

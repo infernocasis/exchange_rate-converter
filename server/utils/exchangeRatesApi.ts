@@ -59,6 +59,10 @@ const getCachedLatestRates = defineCachedFunction(fetchLatestRates, {
  */
 export function createExchangeRatesApi(config: ExchangeRatesApiConfig) {
   return {
+    /** Адрес без ключа (он уходит в query) — для страницы источников */
+    endpoint: `${config.baseUrl}/rates/latest`,
+    /** Сколько секунд курсы живут в серверном кеше */
+    cacheMaxAgeS: RATES_CACHE_MAX_AGE_S,
     getLatestRates: () => getCachedLatestRates(config),
   }
 }
