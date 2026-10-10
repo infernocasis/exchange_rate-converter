@@ -1,0 +1,67 @@
+{
+  "takenAt": "2026-10-10T12:00:00.000Z",
+  "comment": "Намеренно сломанные данные: каждая запись должна поймать свою проверку",
+  "endpoints": {
+    "finance1": {
+      "url": "https://example.test/api/finance1",
+      "status": 200,
+      "contentType": "text/plain",
+      "durationMs": 42000,
+      "body": {
+        "transactions": [
+          { "type": "paid", "amount": 100, "currency": "USD" },
+          { "type": "PAID", "amount": 250, "currency": "USD" },
+          { "type": " paid", "amount": 40, "currency": "EUR" },
+          { "type": "refunded", "amount": 30, "currency": "USD" },
+          { "amount": 10, "currency": "USD" },
+          { "type": "paid", "amount": "75", "currency": "USD" },
+          { "type": "paid", "amount": -5, "currency": "USD" },
+          { "type": "paid", "amount": 10.555, "currency": "USD" },
+          { "type": "paid", "amount": 0, "currency": "USD" },
+          { "type": "paid", "amount": 20, "currency": "eur" },
+          { "type": "paid", "amount": 20, "currency": " GBP " },
+          { "type": "paid", "amount": 20, "currency": "US" },
+          { "type": "paid", "amount": 20, "currency": "BTC" },
+          { "type": "paid", "amount": 20, "currency": "XYZ" },
+          { "type": "paid", "amount": 20, "currency": "KZT" },
+          { "type": "paid", "amount": 20 },
+          { "type": "paid", "amount": 100, "currency": "USD" },
+          { "type": "paid", "amount": 5, "currency": "USD", "comment": "manual" },
+          "garbage"
+        ],
+        "address": { "city": "New York" }
+      }
+    },
+    "finance2": {
+      "url": "https://example.test/api/finance2",
+      "status": 200,
+      "contentType": "application/json; charset=utf-8",
+      "durationMs": 900,
+      "body": [
+        "300 USD",
+        "200 usd",
+        "  150 EUR",
+        "100  EUR",
+        "300,50 USD",
+        "-20 USD",
+        "1e3 USD",
+        "10.505 EUR",
+        "100USD",
+        "50 RUB extra",
+        42,
+        "70 rub"
+      ]
+    },
+    "rates": {
+      "url": "https://example.test/v2.0/rates/latest",
+      "status": 200,
+      "contentType": "application/json",
+      "durationMs": 300,
+      "body": {
+        "date": "2026-10-07 00:00:00+00",
+        "base": "USD",
+        "rates": { "EUR": "0.9", "GBP": "0.8", "BTC": "0.00001", "RUB": "abc", "XXX": "0", "SOL": "0.005" }
+      }
+    }
+  }
+}

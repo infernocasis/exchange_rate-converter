@@ -1,0 +1,404 @@
+{
+  "findings": [
+    {
+      "id": "CUR-CASE",
+      "endpoint": "finance2",
+      "severity": "warning",
+      "title": "Код валюты не в верхнем регистре",
+      "impact": "Клиент нормализует регистр сам, поэтому расчёт верный. Но ISO 4217 требует верхний регистр, и любой другой потребитель API со строгим сравнением (`=== \"USD\"`) получит ошибку или разнесёт одну валюту на две.",
+      "fix": "Отдавать коды валют в верхнем регистре: `USD`, `EUR`.",
+      "occurrences": [
+        {
+          "where": "[0]",
+          "value": "\"usd\"",
+          "note": "ожидается \"USD\""
+        },
+        {
+          "where": "[1]",
+          "value": "\"eur\"",
+          "note": "ожидается \"EUR\""
+        },
+        {
+          "where": "[2]",
+          "value": "\"usd\"",
+          "note": "ожидается \"USD\""
+        },
+        {
+          "where": "[3]",
+          "value": "\"usd\"",
+          "note": "ожидается \"USD\""
+        },
+        {
+          "where": "[4]",
+          "value": "\"eur\"",
+          "note": "ожидается \"EUR\""
+        },
+        {
+          "where": "[5]",
+          "value": "\"usd\"",
+          "note": "ожидается \"USD\""
+        },
+        {
+          "where": "[6]",
+          "value": "\"usd\"",
+          "note": "ожидается \"USD\""
+        },
+        {
+          "where": "[7]",
+          "value": "\"usd\"",
+          "note": "ожидается \"USD\""
+        },
+        {
+          "where": "[8]",
+          "value": "\"eur\"",
+          "note": "ожидается \"EUR\""
+        }
+      ]
+    },
+    {
+      "id": "CUR-INCONSISTENT",
+      "endpoint": "finance1+finance2",
+      "severity": "warning",
+      "title": "Одна валюта записана по-разному",
+      "impact": "Клиент приводит написание к одному виду, но потребитель без нормализации посчитает одну валюту как несколько.",
+      "fix": "Единый формат кода валюты во всех эндпоинтах.",
+      "occurrences": [
+        {
+          "where": "USD",
+          "value": "\"USD\" в finance1; \"usd\" в finance2"
+        },
+        {
+          "where": "EUR",
+          "value": "\"EUR\" в finance1; \"eur\" в finance2"
+        }
+      ]
+    },
+    {
+      "id": "F1-NO-DATE",
+      "endpoint": "finance1",
+      "severity": "info",
+      "title": "У транзакций нет даты",
+      "impact": "Клиент не может проверить, что все оплаты относятся к нужному дню.",
+      "fix": "Добавить дату оплаты в ISO 8601 (`2026-10-10T12:00:00Z`).",
+      "occurrences": [
+        {
+          "where": "transactions[*]",
+          "value": "нет полей date / createdAt / paidAt / timestamp / time"
+        }
+      ]
+    },
+    {
+      "id": "F1-NO-ID",
+      "endpoint": "finance1",
+      "severity": "info",
+      "title": "У транзакций нет уникального идентификатора",
+      "impact": "Невозможно отличить дубль от двух одинаковых оплат и сверить данные с учётной системой.",
+      "fix": "Добавить `id` в каждую транзакцию.",
+      "occurrences": [
+        {
+          "where": "transactions[*]",
+          "value": "нет полей id / _id / transactionId / uuid"
+        }
+      ]
+    },
+    {
+      "id": "F1-ROOT-EXTRA",
+      "endpoint": "finance1",
+      "severity": "info",
+      "title": "В ответе есть поля, не относящиеся к транзакциям",
+      "impact": "Клиент их игнорирует. Если это персональные данные — лишняя утечка наружу.",
+      "fix": "Убрать из финансового эндпоинта поля, которые не нужны для расчёта, или вынести в отдельный эндпоинт.",
+      "occurrences": [
+        {
+          "where": "body",
+          "value": "address"
+        }
+      ]
+    },
+    {
+      "id": "F2-STRUCTURE",
+      "endpoint": "finance2",
+      "severity": "info",
+      "title": "Платежи — плоские строки без структуры",
+      "impact": "Нет id, даты и статуса: нельзя сверить, отфильтровать неоплаченные или найти дубли. Форматы двух источников разные.",
+      "fix": "Отдавать объекты в том же формате, что и `/finance1`: `{ id, type, amount, currency, date }`.",
+      "occurrences": [
+        {
+          "where": "[*]",
+          "value": "9 элементов вида \"300 usd\""
+        }
+      ]
+    },
+    {
+      "id": "R-NON-ISO",
+      "endpoint": "rates",
+      "severity": "info",
+      "title": "В списке курсов есть не-ISO коды (криптовалюты, токены)",
+      "impact": "Трёхбуквенные тикеры (`BTC`, `ETH`, `SOL`…) проходят проверку формата — поэтому важна проверка `CUR-NOT-ISO` на стороне API.",
+      "fix": "Действий от провайдера не требуется; учитывать на стороне API/клиента.",
+      "occurrences": [
+        {
+          "where": "rates",
+          "value": "882 кодов, из них 324 трёхбуквенных",
+          "note": "например: WLD, HNT, DGB, BCH, JST, HOT, SEI, JTO, DHN, FLR, BDX, SFP"
+        }
+      ]
+    },
+    {
+      "id": "R-VALUE-STRING",
+      "endpoint": "rates",
+      "severity": "info",
+      "title": "Курсы переданы строками",
+      "impact": "Клиент приводит к числу сам. Поведение задокументировано у провайдера.",
+      "fix": "Действий не требуется.",
+      "occurrences": [
+        {
+          "where": "rates",
+          "value": "1042 из 1042"
+        }
+      ]
+    }
+  ],
+  "passed": [
+    {
+      "id": "CUR-CASE",
+      "endpoint": "finance1",
+      "title": "Код валюты не в верхнем регистре"
+    },
+    {
+      "id": "CUR-FORMAT",
+      "endpoint": "finance1",
+      "title": "Код валюты не из 3 латинских букв"
+    },
+    {
+      "id": "CUR-MISSING",
+      "endpoint": "finance1",
+      "title": "Код валюты отсутствует или не строка"
+    },
+    {
+      "id": "CUR-NO-RATE",
+      "endpoint": "finance1",
+      "title": "Для валюты нет курса у провайдера"
+    },
+    {
+      "id": "CUR-NOT-ISO",
+      "endpoint": "finance1",
+      "title": "Код валюты не существует в ISO 4217"
+    },
+    {
+      "id": "CUR-WHITESPACE",
+      "endpoint": "finance1",
+      "title": "Пробелы вокруг кода валюты"
+    },
+    {
+      "id": "F1-AMOUNT-INVALID",
+      "endpoint": "finance1",
+      "title": "Сумма отсутствует или не конечное число"
+    },
+    {
+      "id": "F1-AMOUNT-NEGATIVE",
+      "endpoint": "finance1",
+      "title": "Отрицательная сумма"
+    },
+    {
+      "id": "F1-AMOUNT-PRECISION",
+      "endpoint": "finance1",
+      "title": "Больше 2 знаков после запятой"
+    },
+    {
+      "id": "F1-AMOUNT-TYPE",
+      "endpoint": "finance1",
+      "title": "Сумма передана строкой, а не числом"
+    },
+    {
+      "id": "F1-AMOUNT-ZERO",
+      "endpoint": "finance1",
+      "title": "Оплата на нулевую сумму"
+    },
+    {
+      "id": "F1-DUPLICATE",
+      "endpoint": "finance1",
+      "title": "Полностью одинаковые оплаты"
+    },
+    {
+      "id": "F1-EMPTY",
+      "endpoint": "finance1",
+      "title": "Список транзакций пуст"
+    },
+    {
+      "id": "F1-EXTRA-FIELDS",
+      "endpoint": "finance1",
+      "title": "Неожиданные поля в транзакции"
+    },
+    {
+      "id": "F1-RECORD-NOT-OBJECT",
+      "endpoint": "finance1",
+      "title": "Транзакция — не объект"
+    },
+    {
+      "id": "F1-SHAPE",
+      "endpoint": "finance1",
+      "title": "Ответ не объект с массивом `transactions`"
+    },
+    {
+      "id": "F1-TYPE-CASE",
+      "endpoint": "finance1",
+      "title": "Статус `paid` в другом регистре или с пробелами"
+    },
+    {
+      "id": "F1-TYPE-MISSING",
+      "endpoint": "finance1",
+      "title": "У транзакции нет строкового `type`"
+    },
+    {
+      "id": "F1-TYPE-UNKNOWN",
+      "endpoint": "finance1",
+      "title": "Неизвестный статус транзакции"
+    },
+    {
+      "id": "HTTP-CONTENT-TYPE",
+      "endpoint": "finance1",
+      "title": "Content-Type не application/json"
+    },
+    {
+      "id": "HTTP-JSON",
+      "endpoint": "finance1",
+      "title": "Тело ответа — не валидный JSON"
+    },
+    {
+      "id": "HTTP-SLOW",
+      "endpoint": "finance1",
+      "title": "Ответ дольше 10 с"
+    },
+    {
+      "id": "HTTP-STATUS",
+      "endpoint": "finance1",
+      "title": "Эндпоинт не вернул успешный ответ"
+    },
+    {
+      "id": "CUR-FORMAT",
+      "endpoint": "finance2",
+      "title": "Код валюты не из 3 латинских букв"
+    },
+    {
+      "id": "CUR-MISSING",
+      "endpoint": "finance2",
+      "title": "Код валюты отсутствует или не строка"
+    },
+    {
+      "id": "CUR-NO-RATE",
+      "endpoint": "finance2",
+      "title": "Для валюты нет курса у провайдера"
+    },
+    {
+      "id": "CUR-NOT-ISO",
+      "endpoint": "finance2",
+      "title": "Код валюты не существует в ISO 4217"
+    },
+    {
+      "id": "CUR-WHITESPACE",
+      "endpoint": "finance2",
+      "title": "Пробелы вокруг кода валюты"
+    },
+    {
+      "id": "F2-AMOUNT-FORMAT",
+      "endpoint": "finance2",
+      "title": "Сумма в строке в недопустимом формате"
+    },
+    {
+      "id": "F2-FORMAT",
+      "endpoint": "finance2",
+      "title": "Строка не в формате `\"<сумма> <ВАЛЮТА>\"`"
+    },
+    {
+      "id": "F2-ITEM-TYPE",
+      "endpoint": "finance2",
+      "title": "Элемент массива — не строка"
+    },
+    {
+      "id": "F2-SHAPE",
+      "endpoint": "finance2",
+      "title": "Ответ — не массив"
+    },
+    {
+      "id": "F2-WHITESPACE",
+      "endpoint": "finance2",
+      "title": "Лишние пробелы в строке платежа"
+    },
+    {
+      "id": "HTTP-CONTENT-TYPE",
+      "endpoint": "finance2",
+      "title": "Content-Type не application/json"
+    },
+    {
+      "id": "HTTP-JSON",
+      "endpoint": "finance2",
+      "title": "Тело ответа — не валидный JSON"
+    },
+    {
+      "id": "HTTP-SLOW",
+      "endpoint": "finance2",
+      "title": "Ответ дольше 10 с"
+    },
+    {
+      "id": "HTTP-STATUS",
+      "endpoint": "finance2",
+      "title": "Эндпоинт не вернул успешный ответ"
+    },
+    {
+      "id": "HTTP-CONTENT-TYPE",
+      "endpoint": "rates",
+      "title": "Content-Type не application/json"
+    },
+    {
+      "id": "HTTP-JSON",
+      "endpoint": "rates",
+      "title": "Тело ответа — не валидный JSON"
+    },
+    {
+      "id": "HTTP-SLOW",
+      "endpoint": "rates",
+      "title": "Ответ дольше 10 с"
+    },
+    {
+      "id": "HTTP-STATUS",
+      "endpoint": "rates",
+      "title": "Эндпоинт не вернул успешный ответ"
+    },
+    {
+      "id": "R-DATE",
+      "endpoint": "rates",
+      "title": "Нет даты курсов или она в неожиданном формате"
+    },
+    {
+      "id": "R-SHAPE",
+      "endpoint": "rates",
+      "title": "Ответ провайдера без `base` или `rates`"
+    },
+    {
+      "id": "R-STALE",
+      "endpoint": "rates",
+      "title": "Курсы старше 36 ч"
+    },
+    {
+      "id": "R-VALUE-INVALID",
+      "endpoint": "rates",
+      "title": "Нечисловые или неположительные курсы"
+    }
+  ],
+  "stats": {
+    "types": {
+      "paid": 5,
+      "pending": 1,
+      "rejected": 2
+    },
+    "paidCents": {
+      "USD": 111000,
+      "EUR": 76000
+    },
+    "cashCents": {
+      "USD": 191000,
+      "EUR": 115000
+    }
+  }
+}

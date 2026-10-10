@@ -1,0 +1,83 @@
+<!doctype html>
+<html lang="ru"><head><meta charset="utf-8"><title>Аудит ответов финансового API</title><style>
+  @page { size: A4; margin: 16mm 14mm; }
+  * { box-sizing: border-box; }
+  body { font-family: "Segoe UI", Roboto, Arial, sans-serif; font-size: 10.5pt; line-height: 1.45; color: #1e293b; }
+  h1 { font-size: 20pt; margin: 0 0 10px; color: #0f172a; }
+  h2 { font-size: 14pt; margin: 22px 0 8px; padding-bottom: 4px; border-bottom: 2px solid #e2e8f0; color: #0f172a; }
+  h3 { font-size: 11.5pt; margin: 18px 0 6px; break-after: avoid; }
+  p, ul, ol { margin: 6px 0; }
+  table { width: 100%; border-collapse: collapse; margin: 8px 0; font-size: 9.5pt; break-inside: auto; }
+  tr { break-inside: avoid; }
+  th, td { border: 1px solid #cbd5e1; padding: 4px 7px; text-align: left; vertical-align: top; word-break: break-word; }
+  th { background: #f1f5f9; }
+  code { font-family: Consolas, "Cascadia Mono", monospace; font-size: 9pt; background: #f1f5f9; padding: 0 3px; border-radius: 3px; }
+  pre { background: #0f172a; color: #e2e8f0; padding: 8px 10px; border-radius: 6px; white-space: pre-wrap; }
+  pre code { background: none; color: inherit; padding: 0; }
+  a { color: #4f46e5; }
+</style></head>
+<body><h1>Аудит ответов финансового API</h1>
+<table><tbody><tr><td>Дата проверки</td><td>10 октября 2026 г. в 21:09:55 GMT+3</td></tr><tr><td>Данные</td><td>живые ответы API — сырые ответы в <code>snapshot.json</code></td></tr><tr><td>Итог</td><td>🔴 критичных: 0 · 🟡 предупреждений: 2 · 🔵 к сведению: 6</td></tr></tbody></table>
+<h2>Резюме</h2>
+<p>Сейчас API отдаёт данные, по которым выручка считается корректно: критичных проблем нет, все эндпоинты отвечают за ~1 с.</p>
+<p><strong>Главное к исправлению:</strong> все 9 строк <code>GET /finance2</code> содержат код валюты в нижнем регистре (<code>&quot;300 usd&quot;</code>, <code>&quot;200 eur&quot;</code>), тогда как <code>GET /finance1</code> отдаёт <code>&quot;USD&quot;</code> / <code>&quot;EUR&quot;</code>. Наш клиент приводит регистр сам, поэтому цифры верные, но это нарушение ISO 4217 и контракта: любой потребитель со строгим сравнением (<code>=== &quot;USD&quot;</code>) получит ошибку или посчитает <code>usd</code> и <code>USD</code> как две разные валюты.</p>
+<p><strong>Рекомендации по контракту</strong> (не ломают расчёт сейчас, но мешают сверке): у транзакций <code>/finance1</code> нет <code>id</code> и даты оплаты; <code>/finance2</code> отдаёт плоские строки без id, даты и статуса — формат отличается от <code>/finance1</code>; в <code>/finance1</code> приходит блок <code>address</code>, который к финансовым данным не относится.</p>
+<h2>Эндпоинты</h2>
+<table><thead><tr><th>Эндпоинт</th><th>HTTP</th><th>Время</th><th>Content-Type</th><th>Записей</th></tr></thead><tbody><tr><td>GET /finance1</td><td>200</td><td>0.9 с</td><td>application/json; charset=utf-8</td><td>8</td></tr><tr><td>GET /finance2</td><td>200</td><td>0.9 с</td><td>application/json; charset=utf-8</td><td>9</td></tr><tr><td>GET /rates/latest (CurrencyFreaks)</td><td>200</td><td>1.1 с</td><td>application/json</td><td>1042</td></tr></tbody></table>
+<h2>Сводка данных</h2>
+<ul><li>Статусы транзакций в /finance1: <code>paid</code> × 5, <code>pending</code> × 1, <code>rejected</code> × 2</li><li>Оплаты /finance1 (<code>paid</code>) по валютам: 1 110,00 USD, 760,00 EUR</li><li>Платежи /finance2 по валютам: 1 910,00 USD, 1 150,00 EUR</li></ul>
+<h2>Проблемы в финансовом API</h2>
+<h3>🟡 CUR-CASE — Код валюты не в верхнем регистре</h3>
+<p><strong>Где:</strong> GET /finance2 · <strong>Важность:</strong> Предупреждение · <strong>Найдено:</strong> 9</p>
+<table><thead><tr><th>Где</th><th>Значение</th><th>Комментарий</th></tr></thead><tbody><tr><td><code>[0]</code></td><td><code>&quot;usd&quot;</code></td><td>ожидается &quot;USD&quot;</td></tr><tr><td><code>[1]</code></td><td><code>&quot;eur&quot;</code></td><td>ожидается &quot;EUR&quot;</td></tr><tr><td><code>[2]</code></td><td><code>&quot;usd&quot;</code></td><td>ожидается &quot;USD&quot;</td></tr><tr><td><code>[3]</code></td><td><code>&quot;usd&quot;</code></td><td>ожидается &quot;USD&quot;</td></tr><tr><td><code>[4]</code></td><td><code>&quot;eur&quot;</code></td><td>ожидается &quot;EUR&quot;</td></tr><tr><td><code>[5]</code></td><td><code>&quot;usd&quot;</code></td><td>ожидается &quot;USD&quot;</td></tr><tr><td><code>[6]</code></td><td><code>&quot;usd&quot;</code></td><td>ожидается &quot;USD&quot;</td></tr><tr><td><code>[7]</code></td><td><code>&quot;usd&quot;</code></td><td>ожидается &quot;USD&quot;</td></tr><tr><td>…</td><td>ещё 1</td><td>полный список в <code>findings.json</code></td></tr></tbody></table>
+<p><strong>Влияние:</strong> Клиент нормализует регистр сам, поэтому расчёт верный. Но ISO 4217 требует верхний регистр, и любой другой потребитель API со строгим сравнением (<code>=== &quot;USD&quot;</code>) получит ошибку или разнесёт одну валюту на две.</p>
+<p><strong>Как исправить:</strong> Отдавать коды валют в верхнем регистре: <code>USD</code>, <code>EUR</code>.</p>
+<h3>🟡 CUR-INCONSISTENT — Одна валюта записана по-разному</h3>
+<p><strong>Где:</strong> GET /finance1 + GET /finance2 · <strong>Важность:</strong> Предупреждение · <strong>Найдено:</strong> 2</p>
+<table><thead><tr><th>Где</th><th>Значение</th><th>Комментарий</th></tr></thead><tbody><tr><td><code>USD</code></td><td><code>&quot;USD&quot; в finance1; &quot;usd&quot; в finance2</code></td><td></td></tr><tr><td><code>EUR</code></td><td><code>&quot;EUR&quot; в finance1; &quot;eur&quot; в finance2</code></td><td></td></tr></tbody></table>
+<p><strong>Влияние:</strong> Клиент приводит написание к одному виду, но потребитель без нормализации посчитает одну валюту как несколько.</p>
+<p><strong>Как исправить:</strong> Единый формат кода валюты во всех эндпоинтах.</p>
+<h3>🔵 F1-NO-DATE — У транзакций нет даты</h3>
+<p><strong>Где:</strong> GET /finance1 · <strong>Важность:</strong> К сведению · <strong>Найдено:</strong> 1</p>
+<table><thead><tr><th>Где</th><th>Значение</th><th>Комментарий</th></tr></thead><tbody><tr><td><code>transactions[*]</code></td><td><code>нет полей date / createdAt / paidAt / timestamp / time</code></td><td></td></tr></tbody></table>
+<p><strong>Влияние:</strong> Клиент не может проверить, что все оплаты относятся к нужному дню.</p>
+<p><strong>Как исправить:</strong> Добавить дату оплаты в ISO 8601 (<code>2026-10-10T12:00:00Z</code>).</p>
+<h3>🔵 F1-NO-ID — У транзакций нет уникального идентификатора</h3>
+<p><strong>Где:</strong> GET /finance1 · <strong>Важность:</strong> К сведению · <strong>Найдено:</strong> 1</p>
+<table><thead><tr><th>Где</th><th>Значение</th><th>Комментарий</th></tr></thead><tbody><tr><td><code>transactions[*]</code></td><td><code>нет полей id / _id / transactionId / uuid</code></td><td></td></tr></tbody></table>
+<p><strong>Влияние:</strong> Невозможно отличить дубль от двух одинаковых оплат и сверить данные с учётной системой.</p>
+<p><strong>Как исправить:</strong> Добавить <code>id</code> в каждую транзакцию.</p>
+<h3>🔵 F1-ROOT-EXTRA — В ответе есть поля, не относящиеся к транзакциям</h3>
+<p><strong>Где:</strong> GET /finance1 · <strong>Важность:</strong> К сведению · <strong>Найдено:</strong> 1</p>
+<table><thead><tr><th>Где</th><th>Значение</th><th>Комментарий</th></tr></thead><tbody><tr><td><code>body</code></td><td><code>address</code></td><td></td></tr></tbody></table>
+<p><strong>Влияние:</strong> Клиент их игнорирует. Если это персональные данные — лишняя утечка наружу.</p>
+<p><strong>Как исправить:</strong> Убрать из финансового эндпоинта поля, которые не нужны для расчёта, или вынести в отдельный эндпоинт.</p>
+<h3>🔵 F2-STRUCTURE — Платежи — плоские строки без структуры</h3>
+<p><strong>Где:</strong> GET /finance2 · <strong>Важность:</strong> К сведению · <strong>Найдено:</strong> 1</p>
+<table><thead><tr><th>Где</th><th>Значение</th><th>Комментарий</th></tr></thead><tbody><tr><td><code>[*]</code></td><td><code>9 элементов вида &quot;300 usd&quot;</code></td><td></td></tr></tbody></table>
+<p><strong>Влияние:</strong> Нет id, даты и статуса: нельзя сверить, отфильтровать неоплаченные или найти дубли. Форматы двух источников разные.</p>
+<p><strong>Как исправить:</strong> Отдавать объекты в том же формате, что и <code>/finance1</code>: <code>{ id, type, amount, currency, date }</code>.</p>
+<h2>Провайдер курсов CurrencyFreaks (к сведению)</h2>
+<p>Сторонний сервис, не входит в зону backend-команды. Приведено для полноты картины.</p>
+<h3>🔵 R-NON-ISO — В списке курсов есть не-ISO коды (криптовалюты, токены)</h3>
+<p><strong>Где:</strong> GET /rates/latest (CurrencyFreaks) · <strong>Важность:</strong> К сведению · <strong>Найдено:</strong> 1</p>
+<table><thead><tr><th>Где</th><th>Значение</th><th>Комментарий</th></tr></thead><tbody><tr><td><code>rates</code></td><td><code>882 кодов, из них 324 трёхбуквенных</code></td><td>например: WLD, HNT, DGB, BCH, JST, HOT, SEI, JTO, DHN, FLR, BDX, SFP</td></tr></tbody></table>
+<p><strong>Влияние:</strong> Трёхбуквенные тикеры (<code>BTC</code>, <code>ETH</code>, <code>SOL</code>…) проходят проверку формата — поэтому важна проверка <code>CUR-NOT-ISO</code> на стороне API.</p>
+<p><strong>Как исправить:</strong> Действий от провайдера не требуется; учитывать на стороне API/клиента.</p>
+<h3>🔵 R-VALUE-STRING — Курсы переданы строками</h3>
+<p><strong>Где:</strong> GET /rates/latest (CurrencyFreaks) · <strong>Важность:</strong> К сведению · <strong>Найдено:</strong> 1</p>
+<table><thead><tr><th>Где</th><th>Значение</th><th>Комментарий</th></tr></thead><tbody><tr><td><code>rates</code></td><td><code>1042 из 1042</code></td><td></td></tr></tbody></table>
+<p><strong>Влияние:</strong> Клиент приводит к числу сам. Поведение задокументировано у провайдера.</p>
+<p><strong>Как исправить:</strong> Действий не требуется.</p>
+<h2>Проверки без замечаний</h2>
+<ul><li>✅ <code>CUR-CASE</code> (GET /finance1) — Код валюты не в верхнем регистре</li><li>✅ <code>CUR-FORMAT</code> (GET /finance1) — Код валюты не из 3 латинских букв</li><li>✅ <code>CUR-MISSING</code> (GET /finance1) — Код валюты отсутствует или не строка</li><li>✅ <code>CUR-NO-RATE</code> (GET /finance1) — Для валюты нет курса у провайдера</li><li>✅ <code>CUR-NOT-ISO</code> (GET /finance1) — Код валюты не существует в ISO 4217</li><li>✅ <code>CUR-WHITESPACE</code> (GET /finance1) — Пробелы вокруг кода валюты</li><li>✅ <code>F1-AMOUNT-INVALID</code> (GET /finance1) — Сумма отсутствует или не конечное число</li><li>✅ <code>F1-AMOUNT-NEGATIVE</code> (GET /finance1) — Отрицательная сумма</li><li>✅ <code>F1-AMOUNT-PRECISION</code> (GET /finance1) — Больше 2 знаков после запятой</li><li>✅ <code>F1-AMOUNT-TYPE</code> (GET /finance1) — Сумма передана строкой, а не числом</li><li>✅ <code>F1-AMOUNT-ZERO</code> (GET /finance1) — Оплата на нулевую сумму</li><li>✅ <code>F1-DUPLICATE</code> (GET /finance1) — Полностью одинаковые оплаты</li><li>✅ <code>F1-EMPTY</code> (GET /finance1) — Список транзакций пуст</li><li>✅ <code>F1-EXTRA-FIELDS</code> (GET /finance1) — Неожиданные поля в транзакции</li><li>✅ <code>F1-RECORD-NOT-OBJECT</code> (GET /finance1) — Транзакция — не объект</li><li>✅ <code>F1-SHAPE</code> (GET /finance1) — Ответ не объект с массивом <code>transactions</code></li><li>✅ <code>F1-TYPE-CASE</code> (GET /finance1) — Статус <code>paid</code> в другом регистре или с пробелами</li><li>✅ <code>F1-TYPE-MISSING</code> (GET /finance1) — У транзакции нет строкового <code>type</code></li><li>✅ <code>F1-TYPE-UNKNOWN</code> (GET /finance1) — Неизвестный статус транзакции</li><li>✅ <code>HTTP-CONTENT-TYPE</code> (GET /finance1) — Content-Type не application/json</li><li>✅ <code>HTTP-JSON</code> (GET /finance1) — Тело ответа — не валидный JSON</li><li>✅ <code>HTTP-SLOW</code> (GET /finance1) — Ответ дольше 10 с</li><li>✅ <code>HTTP-STATUS</code> (GET /finance1) — Эндпоинт не вернул успешный ответ</li><li>✅ <code>CUR-FORMAT</code> (GET /finance2) — Код валюты не из 3 латинских букв</li><li>✅ <code>CUR-MISSING</code> (GET /finance2) — Код валюты отсутствует или не строка</li><li>✅ <code>CUR-NO-RATE</code> (GET /finance2) — Для валюты нет курса у провайдера</li><li>✅ <code>CUR-NOT-ISO</code> (GET /finance2) — Код валюты не существует в ISO 4217</li><li>✅ <code>CUR-WHITESPACE</code> (GET /finance2) — Пробелы вокруг кода валюты</li><li>✅ <code>F2-AMOUNT-FORMAT</code> (GET /finance2) — Сумма в строке в недопустимом формате</li><li>✅ <code>F2-FORMAT</code> (GET /finance2) — Строка не в формате <code>&quot;&lt;сумма&gt; &lt;ВАЛЮТА&gt;&quot;</code></li><li>✅ <code>F2-ITEM-TYPE</code> (GET /finance2) — Элемент массива — не строка</li><li>✅ <code>F2-SHAPE</code> (GET /finance2) — Ответ — не массив</li><li>✅ <code>F2-WHITESPACE</code> (GET /finance2) — Лишние пробелы в строке платежа</li><li>✅ <code>HTTP-CONTENT-TYPE</code> (GET /finance2) — Content-Type не application/json</li><li>✅ <code>HTTP-JSON</code> (GET /finance2) — Тело ответа — не валидный JSON</li><li>✅ <code>HTTP-SLOW</code> (GET /finance2) — Ответ дольше 10 с</li><li>✅ <code>HTTP-STATUS</code> (GET /finance2) — Эндпоинт не вернул успешный ответ</li><li>✅ <code>HTTP-CONTENT-TYPE</code> (GET /rates/latest (CurrencyFreaks)) — Content-Type не application/json</li><li>✅ <code>HTTP-JSON</code> (GET /rates/latest (CurrencyFreaks)) — Тело ответа — не валидный JSON</li><li>✅ <code>HTTP-SLOW</code> (GET /rates/latest (CurrencyFreaks)) — Ответ дольше 10 с</li><li>✅ <code>HTTP-STATUS</code> (GET /rates/latest (CurrencyFreaks)) — Эндпоинт не вернул успешный ответ</li><li>✅ <code>R-DATE</code> (GET /rates/latest (CurrencyFreaks)) — Нет даты курсов или она в неожиданном формате</li><li>✅ <code>R-SHAPE</code> (GET /rates/latest (CurrencyFreaks)) — Ответ провайдера без <code>base</code> или <code>rates</code></li><li>✅ <code>R-STALE</code> (GET /rates/latest (CurrencyFreaks)) — Курсы старше 36 ч</li><li>✅ <code>R-VALUE-INVALID</code> (GET /rates/latest (CurrencyFreaks)) — Нечисловые или неположительные курсы</li></ul>
+<h2>Ожидаемый контракт</h2>
+<p><code>GET /finance1</code>:</p>
+<pre><code>{ &quot;transactions&quot;: [ { &quot;type&quot;: &quot;paid&quot;, &quot;amount&quot;: 100.5, &quot;currency&quot;: &quot;USD&quot; } ] }</code></pre>
+<ul><li><code>type</code> — строка в нижнем регистре: <code>paid</code> | <code>pending</code> | <code>rejected</code>; в выручку идёт только <code>paid</code>.</li><li><code>amount</code> — число ≥ 0, не более 2 знаков после точки.</li><li><code>currency</code> — код ISO 4217, 3 латинские буквы в верхнем регистре.</li></ul>
+<p><code>GET /finance2</code>:</p>
+<pre><code>[&quot;300 USD&quot;, &quot;150.50 EUR&quot;]</code></pre>
+<ul><li>Каждая строка — <code>&quot;&lt;сумма&gt; &lt;ВАЛЮТА&gt;&quot;</code>: сумма с точкой и ≤ 2 знаками, один пробел, код ISO 4217 в верхнем регистре.</li></ul>
+<h2>Как воспроизвести</h2>
+<pre><code>curl -H &quot;x-api-key: $FINANCE_API_KEY&quot; https://cpa-server-vtel.onrender.com/api/finance1
+curl -H &quot;x-api-key: $FINANCE_API_KEY&quot; https://cpa-server-vtel.onrender.com/api/finance2</code></pre></body></html>
