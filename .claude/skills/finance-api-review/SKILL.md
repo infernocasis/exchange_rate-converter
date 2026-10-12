@@ -1,5 +1,5 @@
 ---
-name: finance-api-audit
+name: finance-api-review
 description: Аудит текущих ответов финансового API (/finance1, /finance2) и курсов CurrencyFreaks — ищет проблемы на стороне сервера (регистр и формат кодов валют, несуществующие валюты, суммы строками, неизвестные статусы, дубли, нарушения контракта) и готовит отчёт для backend-разработчиков в Markdown и PDF. Использовать, когда просят «проверить API», «проверить данные от сервера», «найти проблемы в ответах бэкенда», «сделать отчёт для бэкендеров», или когда расчёт выручки падает с INVALID_UPSTREAM_DATA.
 ---
 
@@ -9,13 +9,13 @@ description: Аудит текущих ответов финансового API
 
 ## Файлы навыка
 
-| Файл | Назначение |
-|---|---|
-| `scripts/audit.mjs` | забирает ответы 3 эндпоинтов (один раз), прогоняет проверки, пишет `snapshot.json`, `findings.json`, `report.md` |
-| `scripts/render-pdf.mjs` | `report.md` → `report.html` + `report.pdf` через установленный Chrome/Edge |
-| `fixtures/broken-snapshot.json` | намеренно сломанные данные — для проверки самого навыка |
+| Файл                            | Назначение                                                                                                       |
+| ------------------------------- | ---------------------------------------------------------------------------------------------------------------- |
+| `scripts/review.mjs`            | забирает ответы 3 эндпоинтов (один раз), прогоняет проверки, пишет `snapshot.json`, `findings.json`, `report.md` |
+| `scripts/render-pdf.mjs`        | `report.md` → `report.html` + `report.pdf` через установленный Chrome/Edge                                       |
+| `fixtures/broken-snapshot.json` | намеренно сломанные данные — для проверки самого навыка                                                          |
 
-Каталог проверок с важностью, влиянием и рекомендацией — объект `CHECKS` в `scripts/audit.mjs`. Важность:
+Каталог проверок с важностью, влиянием и рекомендацией — объект `CHECKS` в `scripts/review.mjs`. Важность:
 
 - 🔴 **Критично** — клиент падает или выручка **молча искажается** (оплата не учтена, сумма пересчитана не по той валюте).
 - 🟡 **Предупреждение** — нарушение контракта, которое клиент сейчас обходит сам (нормализует регистр, обрезает пробелы). Сломает любого другого потребителя API.
@@ -26,7 +26,7 @@ description: Аудит текущих ответов финансового API
 1. **Запустить аудит** из корня проекта (нужен `.env` с ключами):
 
    ```bash
-   node .claude/skills/finance-api-audit/scripts/audit.mjs
+   node .claude/skills/finance-api-review/scripts/review.mjs
    ```
 
    Скрипт делает **ровно один** запрос к каждому эндпоинту — не запускать в цикле: у CurrencyFreaks маленький лимит. Сервер на Render может просыпаться до минуты — это нормально, ждать.
@@ -43,7 +43,7 @@ description: Аудит текущих ответов финансового API
 4. **Собрать PDF:**
 
    ```bash
-   node .claude/skills/finance-api-audit/scripts/render-pdf.mjs docs/reports/api-audit/<папка>/report.md
+   node .claude/skills/finance-api-review/scripts/render-pdf.mjs docs/reports/api-review/<папка>/report.md
    ```
 
    Если браузер не найден — задать `CHROME_PATH`. Если PDF собрать не удалось — отдать Markdown и честно сказать об этом.
@@ -62,7 +62,7 @@ description: Аудит текущих ответов финансового API
 ## Самопроверка навыка
 
 ```bash
-node .claude/skills/finance-api-audit/scripts/audit.mjs --snapshot .claude/skills/finance-api-audit/fixtures/broken-snapshot.json --out <scratchpad>/fixture-run
+node .claude/skills/finance-api-review/scripts/review.mjs --snapshot .claude/skills/finance-api-review/fixtures/broken-snapshot.json --out <scratchpad>/fixture-run
 ```
 
 Ожидается срабатывание всех проверок, кроме `F1-AMOUNT-INVALID`, `F1-EMPTY`, `*-SHAPE`, `HTTP-STATUS`, `HTTP-JSON`, `R-DATE` и проверок валют, которых нет в данных конкретного эндпоинта.
